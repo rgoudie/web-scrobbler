@@ -28,10 +28,10 @@ define((require) => {
 	function process(song) {
 		// Only query APIs if no cover art can be found
 		if (song.parsed.trackArt) {
-			console.log('Using local/parsed artwork');
+			console.log('Using local/parsed track art');
 			return Promise.resolve();
 		} else if (song.metadata.artistThumbUrl) {
-			console.log('Found album artwork via LastFM');
+			console.log('Found album track art via LastFM');
 			return Promise.resolve();
 		} else if (song.isEmpty()) {
 			return Promise.resolve();
@@ -50,9 +50,9 @@ define((require) => {
 						isCoverArtFound = true;
 
 						song.metadata.artistThumbUrl = coverArtUrl;
-						console.log('Found album artwork via MusicBrainz');
+						console.log('Found album track art via MusicBrainz');
 					}).catch(() => {
-						// Suppress errors
+						console.warn('Unable to fetch track art via MusicBrainz');
 					});
 				}
 			});
