@@ -1,6 +1,8 @@
 'use strict';
 
-define(() => {
+define((require) => {
+	const MusicBrainzApi = require('service/musicbrainz');
+
 	/**
 	 * Get array of functions that return promises.
 	 * Used for delayed promise execute.
@@ -74,19 +76,16 @@ define(() => {
 		let artist = song.getArtist();
 		let track = song.getTrack();
 
-		let url = `http://musicbrainz.org/ws/2/${endpoint}?fmt=json&query=` +
-			`title:+"${track}"^3 ${track} artistname:+"${artist}"^4${artist}`;
-		return fetch(url).then((response) => {
-			if (!response.ok) {
-				throw new Error('Unable to fetch MusicBrainz ID');
-			}
-			return response.json();
-		}).then((musicbrainz) => {
-			if (musicbrainz.count === 0) {
+		let query = {
+			artistname: `+"${artist}"^4${artist}`,
+			title: `+"${track}"^3 ${track}`
+		};
+		return MusicBrainzApi.getMusicBrainzId(endpoint, query).then((result) => {
+			if (result.count === 0) {
 				throw new Error('Unable to fetch MusicBrainz ID');
 			}
 
-			let results = musicbrainz[`${endpoint}s`];
+			let results = result[`${endpoint}s`];
 			let mbid = results[0].id;
 			song.metadata.musicBrainzId = mbid;
 
