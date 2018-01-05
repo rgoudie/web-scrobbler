@@ -6,7 +6,7 @@
 define((require) => {
 	const Util = require('util');
 	const UserInput = require('pipeline/user-input');
-	const Metadata = require('pipeline/metadata');
+	const Validate = require('pipeline/validate');
 	const LocalCache = require('pipeline/local-cache');
 	const CoverArtArchive = require('pipeline/coverartarchive');
 
@@ -29,7 +29,7 @@ define((require) => {
 		/**
 		 * Load song metadata using ScrobbleService.
 		 */
-		Metadata,
+		Validate,
 		/**
 		 * Looks for fallback cover art using Cover Art Archive service.
 		 */

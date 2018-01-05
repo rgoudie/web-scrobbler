@@ -14,6 +14,16 @@ define(() => {
 		return request(url);
 	}
 
+	/**
+	 * Get recording by search query.
+	 * @param  {String} query Search query
+	 * @return {Promise} Promise resolved with request result
+	 */
+	function getRecording(query) {
+		let url = makeUrl('recording', query);
+		return request(url);
+	}
+
 	/*
 	 * Internal functions
 	 */
@@ -24,7 +34,7 @@ define(() => {
 
 	function makeParams(query) {
 		let queryStr = makeQueryParam(query);
-		return `query=${queryStr}&fmt=json&limit=1`;
+		return `query=${queryStr}&fmt=json`;
 	}
 
 	function makeQueryParam(query) {
@@ -48,5 +58,5 @@ define(() => {
 		});
 	}
 
-	return { getMusicBrainzId };
+	return { getRecording, getMusicBrainzId };
 });
