@@ -91,6 +91,13 @@ define((require) => {
 
 			for (let pattern of patterns) {
 				if (UrlMatch.test(tab.url, pattern)) {
+					const isAllowed = await browser.permissions.request({
+						origins: [pattern]
+					});
+					if (!isAllowed) {
+						return new InjectResult(InjectResult.MATCHED_BUT_DISABLED, connector);
+					}
+
 					if (await isConnectorInjected(tab.id)) {
 						return new InjectResult(InjectResult.ALREADY_INJECTED, connector);
 					}
