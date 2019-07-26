@@ -24,7 +24,7 @@ let categoryCache = new Map();
 const videoSelector = '.html5-main-video';
 
 let currentVideoDescription = null;
-let currentDataFromDescription = null;
+let artistTrackFromDescription = null;
 
 readConnectorOptions();
 
@@ -220,14 +220,20 @@ function getVideoDescription() {
 
 function getArtistTrackFromDescription() {
 	const description = getVideoDescription();
+
 	if (currentVideoDescription === description) {
-		return currentDataFromDescription;
+		return artistTrackFromDescription;
+	}
+	currentVideoDescription = description;
+
+	const playlist = getPlaylistFromDescription(description);
+	if (playlist.length) {
+		artistTrackFromDescription = getArtistTrackFromPlaylist(playlist);
+	} else {
+		artistTrackFromDescription = getArtistTrackFromYouTubeDescription(description);
 	}
 
-	currentVideoDescription = description;
-	currentDataFromDescription = getArtistTrackFromYouTubeDescription(description);
-
-	return currentDataFromDescription;
+	return artistTrackFromDescription;
 }
 
 // TODO: Move parser code to Util module.
@@ -266,4 +272,56 @@ function getArtistTrackFromYouTubeDescription(desc) {
 	const album = lines[LINE_ALBUM + indexOffset];
 
 	return { artist, track, album };
+}
+
+const regex1 = /[[(]*(\d{0,2}:*\d{2}:\d{2})[\])]*\s+(.+)/i;
+const regex2 = /\s*(.+)\s+[[(]*(\d{0,2}:*\d{2}:\d{2})[\])]*/i;
+
+const noPrefix = /^\d+\./;
+
+const regexes = [{
+	regex: regex1, timestampIndex: 1, trackIndex: 2
+}, {
+	regex: regex2, timestampIndex: 2, trackIndex: 1
+}];
+
+function getArtistTrackFromPlaylist(playlist) {
+	const currentTime = Connector.getCurrentTime();
+	const track = getCurrentTrack(playlist, currentTime);
+
+	return { track };
+}
+
+function getPlaylistFromDescription(description) {
+	const playlist = [];
+
+	const lines = description.split('\n');
+	for (const line of lines) {
+		for (const regexData of regexes) {
+			const { regex, timestampIndex, trackIndex } = regexData;
+
+			const matchResult = line.match(regex);
+
+			if (matchResult) {
+				const rawTimestamp = matchResult[timestampIndex];
+				const timestamp = Util.stringToSeconds(rawTimestamp);
+				const track = matchResult[trackIndex].replace(noPrefix, '');
+
+				playlist.push({ timestamp, track });
+				break;
+			}
+		}
+	}
+
+	return playlist;
+}
+
+function getCurrentTrack(playlist, currentTime) {
+	for (const track of playlist) {
+		if (currentTime >= track.timestamp) {
+			return track;
+		}
+	}
+
+	return null;
 }
