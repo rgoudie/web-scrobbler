@@ -248,7 +248,7 @@ function getArtistTrackFromDescription() {
 		artistTrackFromDescription = getArtistTrackFromYouTubeDescription(description);
 	} else {
 		currentVideoPlaylist = [];
-		artistTrackFromDescription = Util.makeEmtpyArtistTrack();
+		artistTrackFromDescription = Util.makeEmptyArtistTrack();
 	}
 
 	return artistTrackFromDescription;
