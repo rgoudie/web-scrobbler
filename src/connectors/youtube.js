@@ -23,7 +23,7 @@ let categoryCache = new Map();
  */
 const videoSelector = '.html5-main-video';
 
-let currentVidePlaylist = [];
+let currentVideoPlaylist = [];
 let currentVideoDescription = null;
 let artistTrackFromDescription = null;
 
@@ -58,11 +58,15 @@ Connector.getArtistTrack = () => {
  * state may not be considered empty.
  */
 Connector.getCurrentTime = () => {
-	return $(videoSelector).prop('currentTime');
+	if (currentVideoPlaylist.length > 0) {
+		return getCurrentTimeFromPlaylist();
+	}
+
+	return getVideoCurrentTime();
 };
 
 Connector.getDuration = () => {
-	if (currentVidePlaylist.length > 0) {
+	if (currentVideoPlaylist.length > 0) {
 		return getTrackDurationFromPlaylist();
 	}
 
@@ -225,23 +229,25 @@ function getArtistTrackFromDescription() {
 	const description = getVideoDescription();
 
 	if (currentVideoDescription === description) {
-		if (currentVidePlaylist.length > 0) {
-			artistTrackFromDescription = getArtistTrackFromPlaylist(currentVidePlaylist);
+		if (currentVideoPlaylist.length > 0) {
+			artistTrackFromDescription = getArtistTrackFromPlaylist(currentVideoPlaylist);
 		}
 
 		return artistTrackFromDescription;
 	}
+
+	Util.debugLog('Update description');
 	currentVideoDescription = description;
 
 	const playlist = getPlaylistFromDescription(description);
-	console.log(playlist);
 	if (playlist.length) {
-		currentVidePlaylist = playlist;
-		console.log(playlist);
+		currentVideoPlaylist = playlist;
 		artistTrackFromDescription = getArtistTrackFromPlaylist(playlist);
 	} else if (isValidYouTubeDescription(description)) {
+		currentVideoPlaylist = [];
 		artistTrackFromDescription = getArtistTrackFromYouTubeDescription(description);
 	} else {
+		currentVideoPlaylist = [];
 		artistTrackFromDescription = Util.makeEmtpyArtistTrack();
 	}
 
@@ -324,7 +330,6 @@ function getPlaylistFromDescription(description) {
 	for (let i = 0; i < playlist.length; ++i) {
 		let duration = 0;
 		const entry = playlist[i];
-		console.log(entry);
 
 		if (i === 0) {
 			duration = getVideoDuration() - entry.timestamp;
@@ -334,7 +339,6 @@ function getPlaylistFromDescription(description) {
 		}
 
 		entry.duration = duration;
-		// playlist[i] = entry;
 	}
 
 	return playlist.sort(compareTimestamps);
@@ -345,9 +349,9 @@ function compareTimestamps(a, b) {
 }
 
 function getCurrentEntryFromPlaylist() {
-	const currentTime = Connector.getCurrentTime();
+	const currentTime = getVideoCurrentTime();
 
-	for (const entry of currentVidePlaylist) {
+	for (const entry of currentVideoPlaylist) {
 		if (currentTime >= entry.timestamp) {
 			return entry;
 		}
@@ -358,14 +362,28 @@ function getCurrentEntryFromPlaylist() {
 
 function getCurrentTrackFromPlaylist() {
 	const entry = getCurrentEntryFromPlaylist();
-	return entry.track;
+	return entry ? entry.track : null;
 }
 
 function getTrackDurationFromPlaylist() {
 	const entry = getCurrentEntryFromPlaylist();
-	return entry.duration;
+	return entry ? entry.duration : null;
+}
+
+function getCurrentTimeFromPlaylist() {
+	const entry = getCurrentEntryFromPlaylist();
+	if (!entry) {
+		return null;
+	}
+
+	const currentTime = getVideoCurrentTime();
+	return currentTime - entry.timestamp;
 }
 
 function getVideoDuration() {
 	return $(videoSelector).prop('duration');
+}
+
+function getVideoCurrentTime() {
+	return $(videoSelector).prop('currentTime');
 }
