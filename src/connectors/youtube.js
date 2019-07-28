@@ -23,6 +23,7 @@ let categoryCache = new Map();
  */
 const videoSelector = '.html5-main-video';
 
+let currentVidePlaylist = [];
 let currentVideoDescription = null;
 let artistTrackFromDescription = null;
 
@@ -31,23 +32,21 @@ readConnectorOptions();
 Connector.playerSelector = '#content';
 
 Connector.getArtistTrack = () => {
-	const artistTrack = getArtistTrackFromDescription();
-	if (!Util.isArtistTrackEmpty(artistTrack)) {
-		return artistTrack;
-	}
-
+	const artistTrackFromDesc = getArtistTrackFromDescription();
 	const videoTitle = $('.html5-video-player .ytp-title-link').first().text();
 	const ownerName = $('#meta-contents #owner-name a').text();
-
-	// TODO: Remove Topic support
-	const byLineMatch = ownerName.match(/(.+) - Topic/);
-	if (byLineMatch) {
-		return { artist: byLineMatch[1], track: videoTitle };
-	}
 
 	let { artist, track } = Util.processYoutubeVideoTitle(videoTitle);
 	if (!artist) {
 		artist = ownerName;
+	}
+
+	if (!artistTrackFromDesc.artist) {
+		artistTrackFromDesc.artist = artist;
+	}
+
+	if (!Util.isArtistTrackEmpty(artistTrackFromDesc)) {
+		return artistTrackFromDesc;
 	}
 
 	return { artist, track };
@@ -63,7 +62,11 @@ Connector.getCurrentTime = () => {
 };
 
 Connector.getDuration = () => {
-	return $(videoSelector).prop('duration');
+	if (currentVidePlaylist.length > 0) {
+		return getTrackDurationFromPlaylist();
+	}
+
+	return getVideoDuration();
 };
 
 Connector.isPlaying = () => {
@@ -222,15 +225,24 @@ function getArtistTrackFromDescription() {
 	const description = getVideoDescription();
 
 	if (currentVideoDescription === description) {
+		if (currentVidePlaylist.length > 0) {
+			artistTrackFromDescription = getArtistTrackFromPlaylist(currentVidePlaylist);
+		}
+
 		return artistTrackFromDescription;
 	}
 	currentVideoDescription = description;
 
 	const playlist = getPlaylistFromDescription(description);
+	console.log(playlist);
 	if (playlist.length) {
+		currentVidePlaylist = playlist;
+		console.log(playlist);
 		artistTrackFromDescription = getArtistTrackFromPlaylist(playlist);
-	} else {
+	} else if (isValidYouTubeDescription(description)) {
 		artistTrackFromDescription = getArtistTrackFromYouTubeDescription(description);
+	} else {
+		artistTrackFromDescription = Util.makeEmtpyArtistTrack();
 	}
 
 	return artistTrackFromDescription;
@@ -254,11 +266,6 @@ function isValidYouTubeDescription(desc) {
 }
 
 function getArtistTrackFromYouTubeDescription(desc) {
-	Util.debugLog('Call getFrom');
-	if (!isValidYouTubeDescription(desc)) {
-		return Util.makeEmptyArtistTrack();
-	}
-
 	let indexOffset = 0;
 	const lines = desc.split('\n').filter((line) => line.length > 0);
 	if (lines[0].startsWith(descFirstLine)) {
@@ -285,15 +292,14 @@ const regexes = [{
 	regex: regex2, timestampIndex: 2, trackIndex: 1
 }];
 
-function getArtistTrackFromPlaylist(playlist) {
-	const currentTime = Connector.getCurrentTime();
-	const track = getCurrentTrack(playlist, currentTime);
+function getArtistTrackFromPlaylist() {
+	const track = getCurrentTrackFromPlaylist();
 
 	return { track };
 }
 
 function getPlaylistFromDescription(description) {
-	const playlist = [];
+	let playlist = [];
 
 	const lines = description.split('\n');
 	for (const line of lines) {
@@ -313,15 +319,53 @@ function getPlaylistFromDescription(description) {
 		}
 	}
 
-	return playlist;
+	playlist = playlist.sort(compareTimestamps);
+
+	for (let i = 0; i < playlist.length; ++i) {
+		let duration = 0;
+		const entry = playlist[i];
+		console.log(entry);
+
+		if (i === 0) {
+			duration = getVideoDuration() - entry.timestamp;
+		} else {
+			const prevEntry = playlist[i - 1];
+			duration = prevEntry.timestamp - entry.timestamp;
+		}
+
+		entry.duration = duration;
+		// playlist[i] = entry;
+	}
+
+	return playlist.sort(compareTimestamps);
 }
 
-function getCurrentTrack(playlist, currentTime) {
-	for (const track of playlist) {
-		if (currentTime >= track.timestamp) {
-			return track;
+function compareTimestamps(a, b) {
+	return b.timestamp - a.timestamp;
+}
+
+function getCurrentEntryFromPlaylist() {
+	const currentTime = Connector.getCurrentTime();
+
+	for (const entry of currentVidePlaylist) {
+		if (currentTime >= entry.timestamp) {
+			return entry;
 		}
 	}
 
 	return null;
+}
+
+function getCurrentTrackFromPlaylist() {
+	const entry = getCurrentEntryFromPlaylist();
+	return entry.track;
+}
+
+function getTrackDurationFromPlaylist() {
+	const entry = getCurrentEntryFromPlaylist();
+	return entry.duration;
+}
+
+function getVideoDuration() {
+	return $(videoSelector).prop('duration');
 }
