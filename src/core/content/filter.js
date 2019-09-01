@@ -360,13 +360,13 @@ class MetadataFilter {
 			{ source: /-\sLive\s\/\sRemastered$/, target: '' },
 			// Mothership (Remastered)
 			// How The West Was Won [Remastered]
-			{ source: /[([]Remastered[)\]]$/, target: '' },
+			{ source: /[\(\[]Remastered[\)\]]$/, target: '' },
 			// A Well Respected Man (2014 Remastered Version)
 			// A Well Respected Man [2014 Remastered Version]
-			{ source: /[([]\d{4} Remastered Version[)\]]$/, target: '' },
+			{ source: /[\(\[]\d{4} Remastered Version[\)\]]$/, target: '' },
 			// She Was Hot (2009 Re-Mastered Digital Version)
-			// She Was Hot (2009 Remastered Digital Version)
-			{ source: /[([]\d{4} Re-?mastered Digital Version[)\]]$/, target: '' },
+			// She Was Hot [2009 Remastered Digital Version]
+			{ source: /[\(\[]\d{4} Re-?mastered Digital Version[\)\]]$/, target: '' },
 		];
 	}
 
